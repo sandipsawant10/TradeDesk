@@ -1,4 +1,5 @@
-import Trade from "../models/trade.model.js";
+import mongoose from "mongoose";
+import Trade from "../models/Trade.model.js";
 import { sendSuccess } from "../utils/response.js";
 import { AppError, asyncHandler } from "../middleware/error.js";
 
@@ -33,6 +34,8 @@ const getTrades = asyncHandler(async (req, res) => {
       .limit(limitNum),
     Trade.countDocuments(filter),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limitNum));
 
   sendSuccess(res, "Trades fetched", { trades }, 200, {
     total,
@@ -73,12 +76,12 @@ const createTrade = asyncHandler(async (req, res) => {
     tradeDate,
   } = req.body;
 
-  let pn1 = null;
+  let pnl = null;
   let status = "open";
 
   if (exitPrice != null) {
     const multiplier = tradeType === "buy" ? 1 : -1;
-    pn1 = (exitPrice - entryPrice) * quantity * multiplier;
+    pnl = (exitPrice - entryPrice) * quantity * multiplier;
     status = "closed";
   }
 
@@ -92,27 +95,11 @@ const createTrade = asyncHandler(async (req, res) => {
     pnl,
     status,
     notes,
+    tradeDate: tradeDate ? new Date(tradeDate) : new Date(),
     user: req.user.userId,
   });
 
   sendSuccess(res, "Trade created", { trade }, 201);
-});
-
-const getTradeById = asyncHandler(async (req, res) => {
-  const trade = await Trade.findById(req.params.id).populate(
-    "user",
-    "name email",
-  );
-  if (!trade) throw new AppError("Trade not found", 404);
-
-  if (
-    req.user.role === "user" &&
-    trade.user._id.toString() !== req.user.userId
-  ) {
-    throw new AppError("Unauthorized", 403);
-  }
-
-  sendSuccess(res, "Trade fetched", { trade });
 });
 
 const updateTrade = asyncHandler(async (req, res) => {
@@ -177,9 +164,7 @@ const getTradeStats = asyncHandler(async (req, res) => {
     req.user.role === "user"
       ? {
           $match: {
-            user: require("mongoose").Types.ObjectId.cacheHexString(
-              req.user.userId,
-            ),
+            user: new mongoose.Types.ObjectId(req.user.userId),
           },
         }
       : { $match: {} };
@@ -194,7 +179,6 @@ const getTradeStats = asyncHandler(async (req, res) => {
         closedTrades: {
           $sum: { $cond: [{ $eq: ["$status", "closed"] }, 1, 0] },
         },
-        totalPnl: { $sum: { $ifNull: ["$pnl", 0] } },
         totalPnl: { $sum: { $ifNull: ["$pnl", 0] } },
         winCount: { $sum: { $cond: [{ $gt: ["$pnl", 0] }, 1, 0] } },
       },

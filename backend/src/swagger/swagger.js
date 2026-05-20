@@ -1,5 +1,4 @@
 import swaggerJsdoc from "swagger-jsdoc";
-import { info } from "winston";
 
 const options = {
   definition: {

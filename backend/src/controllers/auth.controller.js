@@ -1,14 +1,15 @@
-import User from "../models/User.model";
+import User from "../models/User.model.js";
 import { signToken } from "../utils/jwt.js";
 import { sendSuccess } from "../utils/response.js";
+import { AppError, asyncHandler } from "../middleware/error.js";
 
 const register = asyncHandler(async (req, res) => {
-  const { username, email, password, role } = req.body;
+  const { name, email, password, role } = req.body;
 
   const existing = await User.findOne({ email });
-  if (existing) throw new Error("User already exists", 400);
+  if (existing) throw new AppError("User already exists", 409);
 
-  const user = await User.create({ username, email, password, role });
+  const user = await User.create({ name, email, password, role });
   const token = signToken({ userId: user._id.toString(), role: user.role });
 
   sendSuccess(res, "Account created successfully", { user, token }, 201);
@@ -18,10 +19,10 @@ const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email }).select("+password");
-  if (!user) throw new Error("Invalid credentials", 401);
+  if (!user) throw new AppError("Invalid credentials", 401);
 
   const isMatch = await user.comparePassword(password);
-  if (!isMatch) throw new Error("Invalid credentials", 401);
+  if (!isMatch) throw new AppError("Invalid credentials", 401);
 
   const token = signToken({ userId: user._id.toString(), role: user.role });
 
@@ -39,4 +40,9 @@ const getAllUsers = asyncHandler(async (req, res) => {
   });
 });
 
-export { register, login, getAllUsers };
+const getMe = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.userId).select("-password");
+  sendSuccess(res, "Profile fetched successfully", { user });
+});
+
+export { register, login, getAllUsers, getMe };

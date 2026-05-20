@@ -2,15 +2,16 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import helmet from "helmet";
 import mongoSanitize from "express-mongo-sanitize";
 import swaggerUi from "swagger-ui-express";
 
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/v1/auth.routes.js";
 import tradeRoutes from "./src/routes/v1/trade.routes.js";
-import { errorHandler } from "./src/middleware/error";
+import { errorHandler } from "./src/middleware/error.js";
 import { apiLimiter } from "./src/middleware/rateLimiter.js";
-import { swaggerSpec } from "./src/swagger/swagger";
+import { swaggerSpec } from "./src/swagger/swagger.js";
 import logger from "./src/utils/logger.js";
 
 dotenv.config();

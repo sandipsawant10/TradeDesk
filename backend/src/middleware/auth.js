@@ -1,8 +1,8 @@
-import { verifyToken } from "../utils/jwt";
-import { sendError } from "../utils/response";
+import { verifyToken } from "../utils/jwt.js";
+import { sendError } from "../utils/response.js";
 
 const protect = (req, res, next) => {
-  const header = req.header.authorization;
+  const header = req.headers.authorization;
 
   if (!header || !header.startsWith("Bearer ")) {
     return sendError(res, "Unauthorized", 401);
